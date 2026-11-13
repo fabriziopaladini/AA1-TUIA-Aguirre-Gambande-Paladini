@@ -6,6 +6,7 @@ Tecnicatura en Inteligencia Artificial — FCEIA (UNR).
 ## Trabajos prácticos
 
 - [TP1 — Regresión](TP_1/README.md): predicción de precios de casas.
+- [TP2 Clasificación](TP_2/README.md): predicción de lluvia en Australia.
 
 ## Instalación
 
