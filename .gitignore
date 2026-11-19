@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 catboost_info/
 logs.log
+TP_2/docker/predicciones.csv
