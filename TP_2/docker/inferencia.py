@@ -2,7 +2,7 @@
 
 Lee un CSV con datos meteorológicos crudos (mismo formato que weatherAUS)
 y escribe otro con dos columnas más:
-    - prob_lluvia: probabilidad de que llueva mañana según el modelo.
+    - prob_lluvia: probabilidad de que llueva mañana según la red neuronal.
     - RainTomorrow_pred: "Yes" si prob_lluvia supera el umbral elegido en
       validación, "No" en caso contrario.
 
@@ -10,38 +10,46 @@ Uso:
     python inferencia.py entrada.csv salida.csv
 """
 
+import os
 import sys
 from pathlib import Path
 
 import joblib
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+# Oculta los mensajes informativos de TensorFlow al cargar la red
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+import tensorflow as tf
 
 
+CARPETA = Path(__file__).parent
+PREPROCESAMIENTO = CARPETA / "modelo.joblib"
+RED = CARPETA / "red.keras"
 
-MODELO = Path(__file__).parent / "modelo.joblib"
 
+def cargar_modelo(ruta_prepro: Path = PREPROCESAMIENTO, ruta_red: Path = RED) -> dict:
+    """Carga todo lo aprendido en el entrenamiento.
 
-def cargar_modelo(ruta: Path = MODELO) -> dict:
-    """Carga el pipeline completo tal como quedo al entrenar.
-
-    El archivo es un diccionario con los imputadores (medianas, modas,
-    KMeans), los escaladores, el modelo, su umbral y las tablas fijas
-    (ángulos del viento y coordenadas de las ciudades).
+    modelo.joblib es un diccionario con los imputadores (medianas, modas,
+    KMeans), el escalador, las tablas fijas (ángulos del viento y
+    coordenadas de las ciudades), las columnas de entrada de la red y su
+    umbral. red.keras es la red neuronal entrenada.
 
     Returns:
-        El pipeline: imputacion, escalado y modelo.
+        El diccionario de modelo.joblib con la red agregada en "red".
     """
-    return joblib.load(ruta)
+    art = joblib.load(ruta_prepro)
+    art["red"] = tf.keras.models.load_model(ruta_red)
+    return art
+
 
 def preprocesar(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
     """Aplica a datos crudos los mismos pasos que en el notebook.
 
     Solo usa transform y predict: todo lo aprendido viene en art, nunca
     se vuelve a hacer fit con los datos que se quieren predecir.
-
     """
-
     faltantes = [c for c in art["columnas_entrada"] if c not in datos.columns]
     if faltantes:
         raise ValueError(f"le faltan las columnas {', '.join(faltantes)}")
@@ -58,14 +66,14 @@ def preprocesar(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
     X[art["continuas_mediana"]] = X[art["continuas_mediana"]].fillna(art["medianas"])
     X[art["categoricas_moda"]] = X[art["categoricas_moda"]].fillna(art["modas"])
 
-    # 4 y 5. Sunshine y nubosidad con el valor del cluster de cada dia
+    # 4 y 5. Sunshine y nubosidad con el valor del cluster de cada día
     vars_clusters = list(art["scaler_clusters"].feature_names_in_)
     clusters = art["kmeans"].predict(art["scaler_clusters"].transform(X[vars_clusters]))
     clusters = pd.Series(clusters, index=X.index)
     for col in ["Sunshine", "Cloud9am", "Cloud3pm"]:
         X[col] = X[col].fillna(clusters.map(art["valores_por_cluster"][col]))
 
-    # 6. Direccion del viento a seno y coseno
+    # 6. Dirección del viento a seno y coseno
     angulos = art["angulos_viento"]
     for col in ["WindGustDir", "WindDir9am", "WindDir3pm"]:
         desconocidas = set(X[col]) - set(angulos)
@@ -86,22 +94,21 @@ def preprocesar(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
     X["Lat"] = X["Location"].map(lambda c: coords[c][0])
     X["Lon"] = X["Location"].map(lambda c: coords[c][1])
 
-    # 9 y 10. El escalador se ajusto tambien con LogRainfall, asi que hay que calcularla
+    # 9 y 10. El escalador se ajustó también con LogRainfall, así que hay que calcularla
     X["LogRainfall"] = np.log1p(X["Rainfall"])
     a_escalar = list(art["x_scaler"].feature_names_in_)
     X[a_escalar] = art["x_scaler"].transform(X[a_escalar])
 
-    # 11. Las columnas salen del modelo, no de una lista escrita a mano
-    return X[list(art["modelo"].feature_names_in_)]
+    # 11. Las columnas y su orden salen del notebook (columnas_modelo), no de una lista escrita a mano
+    return X[art["columnas_modelo"]]
 
 
 def predecir(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
     """Devuelve la probabilidad de lluvia y la predicción con el umbral."""
     X = preprocesar(datos, art)
-    prob = art["modelo"].predict_proba(X)[:, 1]
+    prob = art["red"].predict(X.to_numpy(dtype="float32"), verbose=0).ravel()
     return pd.DataFrame({"prob_lluvia": prob.round(3),
                          "RainTomorrow_pred": np.where(prob >= art["umbral"], "Yes", "No")}, index=datos.index)
-
 
 
 def main(entrada: str, salida: str) -> None:
