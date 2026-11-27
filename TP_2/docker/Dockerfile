@@ -11,8 +11,9 @@ COPY requirements.txt .
 # chica
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Recién ahora el código y el modelo entrenado
-COPY inferencia.py modelo.joblib ./
+# Recién ahora el código, el preprocesamiento y la red entrenada
+COPY inferencia.py modelo.joblib red.keras ./
 
-# El contenedor es el script: lo que se pase a docker run son sus argumentos (CSV de entrada y CSV de salida, por ejemplo ejemplo.csv predicciones.csv)
+# El contenedor es el script: lo que se pase a docker run son sus argumentos
+# (CSV de entrada y CSV de salida, por ejemplo ejemplo.csv predicciones.csv)
 ENTRYPOINT ["python", "inferencia.py"]

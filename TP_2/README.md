@@ -6,6 +6,7 @@ Integrantes: Aguirre, Gambande, Paladini
 
 Notebook: [`TP-clasificacion-AA1.ipynb`](TP-clasificacion-AA1.ipynb)
 Datos: [`data/weatherAUS_2026C2.csv`](data/weatherAUS_2026C2.csv)
+Docker: [`docker/`](docker/readme.md)
 
 ## De qué se trata
 
@@ -19,19 +20,31 @@ lluvia del día siguiente (fuga de datos). Dividimos por fecha en entrenamiento,
 prueba, y imputamos y escalamos solo con entrenamiento. Codificamos el viento con seno y coseno
 y la ciudad con latitud y longitud. Entrenamos una regresión logística balanceada, la comparamos
 con un modelo base, optimizamos los hiperparámetros, la explicamos con SHAP y probamos PyCaret.
+Después entrenamos una red neuronal con TensorFlow, la optimizamos con Optuna, la explicamos con
+SHAP, comparamos todos los modelos y desplegamos el elegido con Docker.
 
 ## Resultado
 
-La regresión logística da en prueba un F1 de 0,615 y un AUC de 0,849. El modelo base no detecta
-ningún día de lluvia. PyCaret elige LightGBM, que mejora el AUC (0,878) pero detecta menos días
-de lluvia.
+F1 de la clase «llueve» en prueba:
+
+| Modelo | F1 |
+|---|---|
+| Red neuronal optimizada | 0,654 |
+| Red neuronal inicial (desplegada) | 0,653 |
+| LightGBM (PyCaret) | 0,624 |
+| Regresión logística balanceada | 0,615 |
+| Modelo base | 0 |
+
+Elegimos la red inicial porque rinde casi igual que la optimizada con muchos menos parámetros.
+Es la que está en la carpeta [`docker/`](docker/readme.md).
 
 ## Cómo correrlo
 
-La instalación del entorno está en el [README del repo](../README.md). Abrir el notebook y correr
-todo de arriba a abajo. Las celdas de PyCaret se corrieron en un entorno aparte con Python 3.11,
-porque PyCaret 3.3 no soporta Python 3.12.
+El notebook se corrió con Python 3.11, pandas 3.0.6, numpy 2.4.6, scikit-learn 1.5.2,
+TensorFlow 2.21.0 y Optuna 5.1.0. Hay que usar esas mismas versiones de scikit-learn y
+TensorFlow, porque la consigna 9 vuelve a generar los archivos de `docker/` y tienen que
+coincidir con las de [`docker/requirements.txt`](docker/requirements.txt).
 
-## Pendiente
-
-Ítems 7 a 10: red neuronal, comparación de modelos, docker y conclusión.
+Las celdas de PyCaret (consigna 6) se corrieron en un entorno aparte con Python 3.11
+([`requirements-pycaret.txt`](../requirements-pycaret.txt)), porque PyCaret 3.3 necesita una
+versión de pandas más vieja que la del notebook.
