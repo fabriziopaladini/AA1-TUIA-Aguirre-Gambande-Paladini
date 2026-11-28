@@ -29,27 +29,14 @@ RED = CARPETA / "red.keras"
 
 
 def cargar_modelo(ruta_prepro: Path = PREPROCESAMIENTO, ruta_red: Path = RED) -> dict:
-    """Carga todo lo aprendido en el entrenamiento.
-
-    modelo.joblib es un diccionario con los imputadores (medianas, modas,
-    KMeans), el escalador, las tablas fijas (ángulos del viento y
-    coordenadas de las ciudades), las columnas de entrada de la red y su
-    umbral. red.keras es la red neuronal entrenada.
-
-    Returns:
-        El diccionario de modelo.joblib con la red agregada en "red".
-    """
+    """Carga el preprocesamiento (modelo.joblib) y la red (red.keras)."""
     art = joblib.load(ruta_prepro)
     art["red"] = tf.keras.models.load_model(ruta_red)
     return art
 
 
 def preprocesar(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
-    """Aplica a datos crudos los mismos pasos que en el notebook.
-
-    Solo usa transform y predict: todo lo aprendido viene en art, nunca
-    se vuelve a hacer fit con los datos que se quieren predecir.
-    """
+    """Aplica a los datos crudos los mismos pasos que en el notebook, sin hacer fit."""
     faltantes = [c for c in art["columnas_entrada"] if c not in datos.columns]
     if faltantes:
         raise ValueError(f"le faltan las columnas {', '.join(faltantes)}")
@@ -104,7 +91,7 @@ def preprocesar(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
 
 
 def predecir(datos: pd.DataFrame, art: dict) -> pd.DataFrame:
-    """Devuelve la probabilidad de lluvia y la predicción con el umbral."""
+    """Devuelve la probabilidad de lluvia y la predicción según el umbral."""
     X = preprocesar(datos, art)
     prob = art["red"].predict(X.to_numpy(dtype="float32"), verbose=0).ravel()
     return pd.DataFrame({"prob_lluvia": prob.round(3),
