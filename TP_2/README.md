@@ -40,10 +40,18 @@ Es la que está en la carpeta [`docker/`](docker/readme.md).
 
 ## Cómo correrlo
 
-El notebook se corrió con Python 3.11, pandas 3.0.6, numpy 2.4.6, scikit-learn 1.5.2,
-TensorFlow 2.21.0 y Optuna 5.1.0. Hay que usar esas mismas versiones de scikit-learn y
+El notebook se corrió con Python 3.11. Hay que usar las mismas versiones de scikit-learn y
 TensorFlow, porque la consigna 9 vuelve a generar los archivos de `docker/` y tienen que
-coincidir con las de [`docker/requirements.txt`](docker/requirements.txt).
+coincidir con las de [`docker/requirements.txt`](docker/requirements.txt). Entorno nuevo con
+las versiones exactas:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install pandas==3.0.6 numpy==2.4.6 scikit-learn==1.5.2 tensorflow==2.21.0 optuna==5.1.0 shap==0.51.0 matplotlib seaborn ipykernel
+```
+
+En Windows el entorno se activa con `.venv\Scripts\activate`.
 
 Las celdas de PyCaret (consigna 6) se corrieron en un entorno aparte con Python 3.11
 ([`requirements-pycaret.txt`](../requirements-pycaret.txt)), porque PyCaret 3.3 necesita una

@@ -1,4 +1,4 @@
-# Misma versión de Python que la del entrenamiento; slim trae lo justo
+# Misma versión de Python que la del entrenamiento. La imagen slim trae lo justo
 FROM python:3.11-slim
 
 # Todo lo que sigue ocurre dentro de /app
